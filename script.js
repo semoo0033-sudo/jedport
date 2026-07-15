@@ -7,16 +7,14 @@ const { useState, useEffect, useMemo, useCallback } = React;
 
 // ---------- Constants ----------
 
-// Change this PIN before deploying. Anyone who enters it correctly gets
-// admin (edit) access. This is a soft deterrent only, not real security.
 const ADMIN_PIN = "9090";
 
-const LOGO_MARK = "images/logo-mark.png";
-const LOGO_FULL = "images/logo-full.png";
+const LOGO_MARK = "logo-mark.png";
+const LOGO_FULL = "logo-full.png";
 
 const STORAGE_KEY = "fleet-data-v1";
 
-// ---------- Icons (small inline SVGs, replacing lucide-react) ----------
+// ---------- Icons ----------
 
 function Icon({ d, className, style, viewBox = "0 0 24 24", children }) {
   return (
@@ -45,7 +43,7 @@ const AnchorIcon = (p) => (
 );
 
 const ShipIcon = (p) => (
-  <Icon {...p} d="M2 20l1.5-5h17L22 20M4 15V8h16v7M9 8V4h6v4M2 20a3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3 1 3 3 0 0 0 3-1" />
+  <Icon {...p} d="M2 20l1.5-5h17L22 20M4 15V8h16v7M9 8V4h6v4M2 20a3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-1 3 3 0 0 0 3-1 3 3 0 0 0 3-1" />
 );
 
 const AlertTriangleIcon = (p) => (
@@ -141,7 +139,7 @@ function fmtDate(d) {
   return d;
 }
 
-// ---------- Local storage helpers (replaces Claude's window.storage) ----------
+// ---------- Local storage helpers ----------
 
 function loadFromStorage() {
   try {
@@ -710,7 +708,7 @@ function MiniStat({ label, value, sub }) {
   );
 }
 
-// ---------- Simple bar chart (replaces recharts) ----------
+// ---------- Simple bar chart ----------
 
 function SimpleBarChart({ data }) {
   const max = Math.max(1, ...data.map(d => d.value));
