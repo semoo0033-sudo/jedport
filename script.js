@@ -7,14 +7,16 @@ const { useState, useEffect, useMemo, useCallback } = React;
 
 // ---------- Constants ----------
 
+// Change this PIN before deploying. Anyone who enters it correctly gets
+// admin (edit) access. This is a soft deterrent only, not real security.
 const ADMIN_PIN = "9090";
 
-const LOGO_MARK = "logo-mark.png";
-const LOGO_FULL = "logo-full.png";
+const LOGO_MARK = "images/logo-mark.png";
+const LOGO_FULL = "images/logo-full.png";
 
 const STORAGE_KEY = "fleet-data-v1";
 
-// ---------- Icons ----------
+// ---------- Icons (small inline SVGs, replacing lucide-react) ----------
 
 function Icon({ d, className, style, viewBox = "0 0 24 24", children }) {
   return (
@@ -43,7 +45,7 @@ const AnchorIcon = (p) => (
 );
 
 const ShipIcon = (p) => (
-  <Icon {...p} d="M2 20l1.5-5h17L22 20M4 15V8h16v7M9 8V4h6v4M2 20a3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3-1 3 3 0 0 0 3-1 3 3 0 0 0 3-1" />
+  <Icon {...p} d="M2 20l1.5-5h17L22 20M4 15V8h16v7M9 8V4h6v4M2 20a3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3 1 3 3 0 0 0 3-1 3 3 0 0 0 3 1 3 3 0 0 0 3-1" />
 );
 
 const AlertTriangleIcon = (p) => (
@@ -103,20 +105,22 @@ function daysBetween(dateStr) {
 
 function statusOf(vessel) {
   if (vessel.exemptionStatus !== "exempt") {
-    return { code: "no_exemption", label: "غير معفاة - تتطلب إرشاد", days: null };
+    return { code: "no_exemption", label: "ØºÙØ± ÙØ¹ÙØ§Ø© - ØªØªØ·ÙØ¨ Ø¥Ø±Ø´Ø§Ø¯", days: null };
   }
   if (!vessel.expiry) {
-    return { code: "unset", label: "معفاة - بلا تاريخ انتهاء محدد", days: null };
+    return { code: "unset", label: "ÙØ¹ÙØ§Ø© - Ø¨ÙØ§ ØªØ§Ø±ÙØ® Ø§ÙØªÙØ§Ø¡ ÙØ­Ø¯Ø¯", days: null };
   }
   const d = daysBetween(vessel.expiry);
-  if (d < 0) return { code: "expired", label: "منتهي", days: d };
-  if (d <= 30) return { code: "expiring", label: "أوشك على الانتهاء", days: d };
-  return { code: "active", label: "معفاة", days: d };
+  if (d < 0) return { code: "expired", label: "ÙÙØªÙÙ", days: d };
+  if (d <= 2) return { code: "critical", label: "Ø¹Ø§Ø¬Ù Ø¬Ø¯Ø§Ù - Ø£ÙÙ ÙÙ 48 Ø³Ø§Ø¹Ø©", days: d };
+  if (d <= 30) return { code: "expiring", label: "Ø£ÙØ´Ù Ø¹ÙÙ Ø§ÙØ§ÙØªÙØ§Ø¡", days: d };
+  return { code: "active", label: "ÙØ¹ÙØ§Ø©", days: d };
 }
 
 const STATUS_STYLES = {
   active: { bg: "#E3EEE7", border: "#3F7A63", text: "#1F4A3A", dot: "#3F7A63" },
   expiring: { bg: "#F5E9D2", border: "#B8935A", text: "#6B4E24", dot: "#B8935A" },
+  critical: { bg: "#FBDADA", border: "#D6291D", text: "#7A140C", dot: "#D6291D" },
   expired: { bg: "#F1DCD5", border: "#A8402F", text: "#6B241A", dot: "#A8402F" },
   no_exemption: { bg: "#E7EAEC", border: "#8C98A0", text: "#4A5760", dot: "#8C98A0" },
   unset: { bg: "#E5E0EC", border: "#7A6A97", text: "#453A5C", dot: "#7A6A97" },
@@ -130,16 +134,16 @@ function monthKey(dateStr) {
 function monthLabel(key) {
   if (!key) return "";
   const [y, m] = key.split("-");
-  const names = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+  const names = ["ÙÙØ§ÙØ±", "ÙØ¨Ø±Ø§ÙØ±", "ÙØ§Ø±Ø³", "Ø£Ø¨Ø±ÙÙ", "ÙØ§ÙÙ", "ÙÙÙÙÙ", "ÙÙÙÙÙ", "Ø£ØºØ³Ø·Ø³", "Ø³Ø¨ØªÙØ¨Ø±", "Ø£ÙØªÙØ¨Ø±", "ÙÙÙÙØ¨Ø±", "Ø¯ÙØ³ÙØ¨Ø±"];
   return `${names[parseInt(m, 10) - 1]} ${y}`;
 }
 
 function fmtDate(d) {
-  if (!d) return "—";
+  if (!d) return "â";
   return d;
 }
 
-// ---------- Local storage helpers ----------
+// ---------- Local storage helpers (replaces Claude's window.storage) ----------
 
 function loadFromStorage() {
   try {
@@ -176,14 +180,15 @@ function FleetDashboard() {
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [expandedStat, setExpandedStat] = useState(null);
 
   const attemptLogin = (pin) => {
     if (pin === ADMIN_PIN) {
       setIsAdmin(true);
       setShowLoginModal(false);
-      setToast({ type: "ok", msg: "تم تفعيل صلاحية المشرف." });
+      setToast({ type: "ok", msg: "ØªÙ ØªÙØ¹ÙÙ ØµÙØ§Ø­ÙØ© Ø§ÙÙØ´Ø±Ù." });
     } else {
-      setToast({ type: "error", msg: "رمز الدخول غير صحيح." });
+      setToast({ type: "error", msg: "Ø±ÙØ² Ø§ÙØ¯Ø®ÙÙ ØºÙØ± ØµØ­ÙØ­." });
     }
   };
 
@@ -200,7 +205,7 @@ function FleetDashboard() {
   const persist = useCallback((nextVessels, nextLog, nextMovements) => {
     setSaving(true);
     const ok = saveToStorage({ vessels: nextVessels, captainLog: nextLog, movements: nextMovements });
-    if (!ok) setToast({ type: "error", msg: "تعذر الحفظ. حاول مرة أخرى." });
+    if (!ok) setToast({ type: "error", msg: "ØªØ¹Ø°Ø± Ø§ÙØ­ÙØ¸. Ø­Ø§ÙÙ ÙØ±Ø© Ø£Ø®Ø±Ù." });
     setTimeout(() => setSaving(false), 300);
   }, []);
 
@@ -261,14 +266,28 @@ function FleetDashboard() {
     const priority = { exempt: 0, not_exempt: 1, unset: 2 };
     return list.sort((a, b) => (priority[a.exemptionStatus] ?? 1) - (priority[b.exemptionStatus] ?? 1));
   }, [vessels]);
+  const criticalAlerts = useMemo(() => enriched.filter(v => v.status.code === "critical"), [enriched]);
   const alerts = useMemo(() => enriched.filter(v => v.status.code === "expiring" || v.status.code === "expired"), [enriched]);
   const stats = useMemo(() => ({
     total: enriched.length,
     active: enriched.filter(v => v.status.code === "active").length,
     expiring: enriched.filter(v => v.status.code === "expiring").length,
+    critical: enriched.filter(v => v.status.code === "critical").length,
     expired: enriched.filter(v => v.status.code === "expired").length,
     noExemption: enriched.filter(v => v.status.code === "no_exemption").length,
   }), [enriched]);
+
+  const vesselNamesByStat = useMemo(() => ({
+    total: enriched.map(v => v.arName),
+    active: enriched.filter(v => v.status.code === "active").map(v => v.arName),
+    expiring: enriched.filter(v => v.status.code === "expiring").map(v => v.arName),
+    expired: enriched.filter(v => v.status.code === "expired").map(v => v.arName),
+  }), [enriched]);
+
+  const todaysOperationsCount = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return movements.filter(m => m.date === today).length;
+  }, [movements]);
 
   const monthsAvailable = useMemo(() => {
     const keys = new Set(movements.map(m => monthKey(m.date)));
@@ -323,12 +342,12 @@ function FleetDashboard() {
 
     return {
       totalOps: list.length,
-      topVesselName: topVessel ? topVessel.arName : "—",
+      topVesselName: topVessel ? topVessel.arName : "â",
       topVesselCount: topVesselEntry.count,
       totalQuantity: Math.round(totalQuantity).toLocaleString("en-US"),
-      topFuel: topFuel.key || "—",
-      topBerth: topBerth.key || "—",
-      busiestDay: busiestDay.key || "—",
+      topFuel: topFuel.key || "â",
+      topBerth: topBerth.key || "â",
+      busiestDay: busiestDay.key || "â",
       busiestDayCount: busiestDay.count,
     };
   }, [movements, vessels]);
@@ -345,7 +364,7 @@ function FleetDashboard() {
       <div dir="rtl" className="min-h-screen flex items-center justify-center bg-white text-[#5C6B73]">
         <div className="flex flex-col items-center gap-4">
           <img src={LOGO_MARK} alt="" className="h-14 w-auto animate-pulse" />
-          <span className="text-sm tracking-wide">جارٍ تحميل بيانات الأسطول…</span>
+          <span className="text-sm tracking-wide">Ø¬Ø§Ø±Ù ØªØ­ÙÙÙ Ø¨ÙØ§ÙØ§Øª Ø§ÙØ£Ø³Ø·ÙÙâ¦</span>
         </div>
       </div>
     );
@@ -359,27 +378,27 @@ function FleetDashboard() {
         <div className="h-1.5" style={{ background: "linear-gradient(90deg, #2C5A70, #4E8AA0, #2C5A70)" }}></div>
         <div className="max-w-6xl mx-auto px-5 pt-6 pb-4 relative">
           <div className="shield-badge absolute -top-1 right-4 sm:right-6">
-            <img src={LOGO_MARK} alt="شعار ميناء جدة الإسلامي" className="h-8 w-auto relative z-10" />
+            <img src={LOGO_MARK} alt="Ø´Ø¹Ø§Ø± ÙÙÙØ§Ø¡ Ø¬Ø¯Ø© Ø§ÙØ¥Ø³ÙØ§ÙÙ" className="h-8 w-auto relative z-10" />
           </div>
           <div className="pr-16 sm:pr-20">
-            <h1 className="amiri text-2xl font-bold tracking-tight" style={{ color: "#1E4356" }}>لوحة متابعة إعفاءات سفن التزويد بالوقود</h1>
-            <p className="text-xs mt-1 tracking-wide" style={{ color: "#5C87A0" }}>ميناء جدة الإسلامي · الهيئة العامة للموانئ</p>
+            <h1 className="amiri text-2xl font-bold tracking-tight" style={{ color: "#1E4356" }}>ÙÙØ­Ø© ÙØªØ§Ø¨Ø¹Ø© Ø¥Ø¹ÙØ§Ø¡Ø§Øª Ø³ÙÙ Ø§ÙØªØ²ÙÙØ¯ Ø¨Ø§ÙÙÙÙØ¯</h1>
+            <p className="text-xs mt-1 tracking-wide" style={{ color: "#5C87A0" }}>ÙÙÙØ§Ø¡ Ø¬Ø¯Ø© Ø§ÙØ¥Ø³ÙØ§ÙÙ Â· Ø§ÙÙÙØ¦Ø© Ø§ÙØ¹Ø§ÙØ© ÙÙÙÙØ§ÙØ¦</p>
           </div>
           <div className="flex items-center gap-3 mt-4 flex-wrap">
             {isAdmin ? (
-              <button onClick={() => { setIsAdmin(false); setToast({ type: "ok", msg: "تم الخروج من وضع المشرف." }); }}
+              <button onClick={() => { setIsAdmin(false); setToast({ type: "ok", msg: "ØªÙ Ø§ÙØ®Ø±ÙØ¬ ÙÙ ÙØ¶Ø¹ Ø§ÙÙØ´Ø±Ù." }); }}
                 className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md text-white" style={{ backgroundColor: "#2C5A70" }}>
-                <UnlockIcon className="w-3.5 h-3.5" /> وضع المشرف
+                <UnlockIcon className="w-3.5 h-3.5" /> ÙØ¶Ø¹ Ø§ÙÙØ´Ø±Ù
               </button>
             ) : (
               <button onClick={() => setShowLoginModal(true)}
                 className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md border hover:bg-[#2C5A70]/5" style={{ borderColor: "#C7D3D8", color: "#5C6B73" }}>
-                <LockIcon className="w-3.5 h-3.5" /> دخول المشرف
+                <LockIcon className="w-3.5 h-3.5" /> Ø¯Ø®ÙÙ Ø§ÙÙØ´Ø±Ù
               </button>
             )}
             <div className="flex items-center gap-2 text-xs" style={{ color: "#5C6B73" }}>
               <RadioIcon className="w-3.5 h-3.5" style={{ color: saving ? "#B8935A" : "#3F7A63" }} />
-              <span>{saving ? "جارٍ الحفظ…" : "متزامن"}</span>
+              <span>{saving ? "Ø¬Ø§Ø±Ù Ø§ÙØ­ÙØ¸â¦" : "ÙØªØ²Ø§ÙÙ"}</span>
             </div>
           </div>
         </div>
@@ -388,25 +407,77 @@ function FleetDashboard() {
       </header>
 
       <div className="max-w-6xl mx-auto px-5 relative" style={{ zIndex: 1 }}>
-        <section className="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-3 rise-in">
-          <StatCard label="إجمالي الأسطول" value={stats.total} color="#0A3D3F" bg="#E4EEEC" IconComp={ShipIcon} />
-          <StatCard label="معفاة وسارية" value={stats.active} color="#1F4A3A" bg="#E3EEE7" IconComp={AnchorIcon} />
-          <StatCard label="أوشكت على الانتهاء" value={stats.expiring} color="#6B4E24" bg="#F5E9D2" IconComp={AlertTriangleIcon} />
-          <StatCard label="منتهية" value={stats.expired} color="#6B241A" bg="#F1DCD5" IconComp={AlertTriangleIcon} />
+        <section className="mt-7 grid grid-cols-2 sm:grid-cols-5 gap-3 rise-in">
+          <StatCard label="Ø¥Ø¬ÙØ§ÙÙ Ø§ÙØ£Ø³Ø·ÙÙ" value={stats.total} color="#0A3D3F" bg="#E4EEEC" IconComp={ShipIcon}
+            onClick={() => setExpandedStat(expandedStat === "total" ? null : "total")} active={expandedStat === "total"} />
+          <StatCard label="ÙØ¹ÙØ§Ø© ÙØ³Ø§Ø±ÙØ©" value={stats.active} color="#1F4A3A" bg="#E3EEE7" IconComp={AnchorIcon}
+            onClick={() => setExpandedStat(expandedStat === "active" ? null : "active")} active={expandedStat === "active"} />
+          <StatCard label="Ø¹ÙÙÙØ§Øª Ø§ÙÙÙÙ" value={todaysOperationsCount} color="#1E4356" bg="#E4EEF4" IconComp={RadioIcon} />
+          <StatCard label="Ø£ÙØ´ÙØª Ø¹ÙÙ Ø§ÙØ§ÙØªÙØ§Ø¡" value={stats.expiring} color="#6B4E24" bg="#F5E9D2" IconComp={AlertTriangleIcon}
+            onClick={() => setExpandedStat(expandedStat === "expiring" ? null : "expiring")} active={expandedStat === "expiring"} />
+          <StatCard label="ÙÙØªÙÙØ©" value={stats.expired} color="#6B241A" bg="#F1DCD5" IconComp={AlertTriangleIcon}
+            onClick={() => setExpandedStat(expandedStat === "expired" ? null : "expired")} active={expandedStat === "expired"} />
         </section>
+
+        {expandedStat && (
+          <section className="mt-2 rounded-lg border px-4 py-3 bg-white rise-in" style={{ borderColor: "#DCE3E7" }}>
+            {vesselNamesByStat[expandedStat].length === 0 ? (
+              <div className="text-xs" style={{ color: "#8B98A0" }}>ÙØ§ ØªÙØ¬Ø¯ Ø³ÙÙ ÙÙ ÙØ°Ù Ø§ÙÙØ¦Ø© Ø­Ø§ÙÙØ§Ù.</div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {vesselNamesByStat[expandedStat].map((name, i) => (
+                  <span key={i} className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ backgroundColor: "#EEF2F4", color: "#1E4356" }}>
+                    {name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
         {overallMovementsReport && (
           <section className="mt-3 rounded-xl border p-4 bg-white rise-in" style={{ borderColor: "#E3D9BE" }}>
             <div className="text-xs font-bold mb-3" style={{ color: "#8B98A0" }}>
-              إجمالي عمليات التزويد بالوقود (كل الشهور المسجّلة)
+              Ø¥Ø¬ÙØ§ÙÙ Ø¹ÙÙÙØ§Øª Ø§ÙØªØ²ÙÙØ¯ Ø¨Ø§ÙÙÙÙØ¯ (ÙÙ Ø§ÙØ´ÙÙØ± Ø§ÙÙØ³Ø¬ÙÙØ©)
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <MiniStat label="إجمالي العمليات" value={overallMovementsReport.totalOps} />
-              <MiniStat label="الأكثر نشاطاً" value={overallMovementsReport.topVesselName} sub={`${overallMovementsReport.topVesselCount} عملية`} />
-              <MiniStat label="إجمالي الكمية" value={overallMovementsReport.totalQuantity} />
-              <MiniStat label="الوقود الأكثر استخداماً" value={overallMovementsReport.topFuel} />
-              <MiniStat label="الرصيف الأكثر ازدحاماً" value={overallMovementsReport.topBerth} />
-              <MiniStat label="أكثر يوم نشاطاً" value={overallMovementsReport.busiestDay} sub={`${overallMovementsReport.busiestDayCount} عمليات`} />
+              <MiniStat label="Ø¥Ø¬ÙØ§ÙÙ Ø§ÙØ¹ÙÙÙØ§Øª" value={overallMovementsReport.totalOps} />
+              <MiniStat label="Ø§ÙØ£ÙØ«Ø± ÙØ´Ø§Ø·Ø§Ù" value={overallMovementsReport.topVesselName} sub={`${overallMovementsReport.topVesselCount} Ø¹ÙÙÙØ©`} />
+              <MiniStat label="Ø¥Ø¬ÙØ§ÙÙ Ø§ÙÙÙÙØ©" value={overallMovementsReport.totalQuantity} />
+              <MiniStat label="Ø§ÙÙÙÙØ¯ Ø§ÙØ£ÙØ«Ø± Ø§Ø³ØªØ®Ø¯Ø§ÙØ§Ù" value={overallMovementsReport.topFuel} />
+              <MiniStat label="Ø§ÙØ±ØµÙÙ Ø§ÙØ£ÙØ«Ø± Ø§Ø²Ø¯Ø­Ø§ÙØ§Ù" value={overallMovementsReport.topBerth} />
+              <MiniStat label="Ø£ÙØ«Ø± ÙÙÙ ÙØ´Ø§Ø·Ø§Ù" value={overallMovementsReport.busiestDay} sub={`${overallMovementsReport.busiestDayCount} Ø¹ÙÙÙØ§Øª`} />
+            </div>
+          </section>
+        )}
+
+        {criticalAlerts.length > 0 && (
+          <section className="mt-5">
+            <div className="rounded-xl border-2 px-4 py-3 pulse-critical" style={{ backgroundColor: "#FBDADA", borderColor: "#D6291D" }}>
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangleIcon className="w-5 h-5" style={{ color: "#D6291D" }} />
+                <h2 className="amiri text-base font-bold" style={{ color: "#7A140C" }}>
+                  Ø¹Ø§Ø¬Ù Ø¬Ø¯Ø§Ù â Ø¥Ø¹ÙØ§Ø¡ ÙÙØªÙÙ Ø®ÙØ§Ù Ø£ÙÙ ÙÙ 48 Ø³Ø§Ø¹Ø©
+                </h2>
+                <span className="mono text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#D6291D", color: "#fff" }}>{criticalAlerts.length}</span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {criticalAlerts.map(v => (
+                  <div key={v.id} className="rounded-lg bg-white/70 px-3 py-2 flex items-center justify-between">
+                    <div>
+                      <div className="font-bold text-sm" style={{ color: "#7A140C" }}>{v.arName} <span className="mono font-normal text-xs opacity-70">/ {v.enName}</span></div>
+                      <div className="text-xs mt-0.5" style={{ color: "#7A140C" }}>
+                        {v.status.days <= 0 ? "ÙÙØªÙÙ Ø§ÙÙÙÙ Ø£Ù Ø®ÙØ§Ù Ø³Ø§Ø¹Ø§Øª" : `ÙØªØ¨ÙÙ ${v.status.days} ÙÙÙ ÙÙØ·`}
+                      </div>
+                    </div>
+                    {isAdmin && (
+                      <button onClick={() => setEditingId(v.id)} className="text-xs font-bold px-3 py-2 rounded-md shrink-0" style={{ backgroundColor: "#D6291D", color: "#fff" }}>
+                        ØªØ¬Ø¯ÙØ¯ Ø§ÙØ¢Ù
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         )}
@@ -414,12 +485,12 @@ function FleetDashboard() {
         <section className="mt-8">
           <div className="ribbon-banner mb-3 flex items-center gap-2">
             <AlertTriangleIcon className="w-4 h-4 text-[#A8402F]" />
-            <h2 className="amiri text-base font-bold tracking-wide text-[#0A3D3F]">التنبيهات الحرجة</h2>
+            <h2 className="amiri text-base font-bold tracking-wide text-[#0A3D3F]">Ø§ÙØªÙØ¨ÙÙØ§Øª Ø§ÙØ­Ø±Ø¬Ø©</h2>
             <span className="mono text-xs px-2 py-0.5 rounded-full bg-[#0A3D3F] text-[#F1E9D5]">{alerts.length}</span>
           </div>
           {alerts.length === 0 ? (
             <div className="rounded-lg border border-[#DCE3E7] bg-[#FFFFFF] px-4 py-3 text-sm text-[#55636B]">
-              لا توجد سفن تتطلب إجراءً عاجلاً حالياً.
+              ÙØ§ ØªÙØ¬Ø¯ Ø³ÙÙ ØªØªØ·ÙØ¨ Ø¥Ø¬Ø±Ø§Ø¡Ù Ø¹Ø§Ø¬ÙØ§Ù Ø­Ø§ÙÙØ§Ù.
             </div>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
@@ -431,13 +502,13 @@ function FleetDashboard() {
                       <div className="font-bold text-sm" style={{ color: s.text }}>{v.arName} <span className="mono font-normal text-xs opacity-70">/ {v.enName}</span></div>
                       <div className="text-xs mt-0.5" style={{ color: s.text }}>
                         {v.status.code === "expired"
-                          ? `منتهي منذ ${Math.abs(v.status.days)} يوم`
-                          : `يتبقى ${v.status.days} يوم على انتهاء الإعفاء`}
+                          ? `ÙÙØªÙÙ ÙÙØ° ${Math.abs(v.status.days)} ÙÙÙ`
+                          : `ÙØªØ¨ÙÙ ${v.status.days} ÙÙÙ Ø¹ÙÙ Ø§ÙØªÙØ§Ø¡ Ø§ÙØ¥Ø¹ÙØ§Ø¡`}
                       </div>
                     </div>
                     {isAdmin && (
-                      <button onClick={() => setEditingId(v.id)} className="text-xs font-bold px-3 py-1.5 rounded-md shrink-0" style={{ backgroundColor: s.border, color: "#fff" }}>
-                        تجديد
+                      <button onClick={() => setEditingId(v.id)} className="text-xs font-bold px-4 py-2.5 rounded-md shrink-0" style={{ backgroundColor: s.border, color: "#fff" }}>
+                        ØªØ¬Ø¯ÙØ¯
                       </button>
                     )}
                   </div>
@@ -451,15 +522,15 @@ function FleetDashboard() {
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <ShipIcon className="w-4 h-4 text-[#0A3D3F]" />
-              <h2 className="amiri text-base font-bold tracking-wide text-[#0A3D3F]">قائمة الأسطول ({vessels.length} سفينة)</h2>
+              <h2 className="amiri text-base font-bold tracking-wide text-[#0A3D3F]">ÙØ§Ø¦ÙØ© Ø§ÙØ£Ø³Ø·ÙÙ ({vessels.length} Ø³ÙÙÙØ©)</h2>
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => setShowLog(s => !s)} className="text-xs font-bold px-3 py-2 rounded-md border border-[#0A3D3F] text-[#0A3D3F] flex items-center gap-1.5 hover:bg-[#0A3D3F]/5 transition">
-                <HistoryIcon className="w-3.5 h-3.5" /> سجل الكباتن {showLog ? <ChevronUpIcon className="w-3.5 h-3.5" /> : <ChevronDownIcon className="w-3.5 h-3.5" />}
+                <HistoryIcon className="w-3.5 h-3.5" /> Ø³Ø¬Ù Ø§ÙÙØ¨Ø§ØªÙ {showLog ? <ChevronUpIcon className="w-3.5 h-3.5" /> : <ChevronDownIcon className="w-3.5 h-3.5" />}
               </button>
               {isAdmin && (
                 <button onClick={() => setShowAddModal(true)} className="text-xs font-bold px-3 py-2 rounded-md bg-[#B8935A] text-[#1E4356] flex items-center gap-1.5 hover:bg-[#C6A46C] transition">
-                  <PlusIcon className="w-3.5 h-3.5" /> إضافة سفينة
+                  <PlusIcon className="w-3.5 h-3.5" /> Ø¥Ø¶Ø§ÙØ© Ø³ÙÙÙØ©
                 </button>
               )}
             </div>
@@ -471,13 +542,13 @@ function FleetDashboard() {
             <table className="w-full text-sm min-w-[860px]">
               <thead>
                 <tr className="bg-[#EEF2F4] text-[#55636B] text-xs">
-                  <th className="text-right px-4 py-3 font-bold">م</th>
-                  <th className="text-right px-4 py-3 font-bold">اسم الناقلة</th>
+                  <th className="text-right px-4 py-3 font-bold">Ù</th>
+                  <th className="text-right px-4 py-3 font-bold">Ø§Ø³Ù Ø§ÙÙØ§ÙÙØ©</th>
                   <th className="text-right px-4 py-3 font-bold mono">IMO</th>
-                  <th className="text-right px-4 py-3 font-bold">الحالة</th>
-                  <th className="text-right px-4 py-3 font-bold">الكابتن الحالي</th>
-                  <th className="text-right px-4 py-3 font-bold">انتهاء الإعفاء</th>
-                  <th className="text-right px-4 py-3 font-bold">الأيام المتبقية</th>
+                  <th className="text-right px-4 py-3 font-bold">Ø§ÙØ­Ø§ÙØ©</th>
+                  <th className="text-right px-4 py-3 font-bold">Ø§ÙÙØ§Ø¨ØªÙ Ø§ÙØ­Ø§ÙÙ</th>
+                  <th className="text-right px-4 py-3 font-bold">Ø§ÙØªÙØ§Ø¡ Ø§ÙØ¥Ø¹ÙØ§Ø¡</th>
+                  <th className="text-right px-4 py-3 font-bold">Ø§ÙØ£ÙØ§Ù Ø§ÙÙØªØ¨ÙÙØ©</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -485,28 +556,28 @@ function FleetDashboard() {
                 {enriched.map((v, i) => {
                   const s = STATUS_STYLES[v.status.code];
                   return (
-                    <tr key={v.id} className="border-t border-[#EEF2F4] hover:bg-[#F3F6F7] transition">
+                    <tr key={v.id} className="border-t border-[#EEF2F4] hover:bg-[#F3F6F7] transition" style={{ borderRight: `4px solid ${s.border}` }}>
                       <td className="px-4 py-3 mono text-xs text-[#8B98A0]">{i + 1}</td>
                       <td className="px-4 py-3">
                         <div className="font-bold">{v.arName}</div>
                         <div className="text-xs text-[#8B98A0] mono">{v.enName}</div>
                       </td>
-                      <td className="px-4 py-3 mono text-xs">{v.imo || "—"}</td>
+                      <td className="px-4 py-3 mono text-xs">{v.imo || "â"}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold" style={{ backgroundColor: s.bg, color: s.text }}>
                           <span className="w-1.5 h-1.5 rotate-45" style={{ backgroundColor: s.dot }}></span>
                           {v.status.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3">{v.master || <span className="text-[#B7C2C8]">غير محدد</span>}</td>
-                      <td className="px-4 py-3 mono text-xs">{v.exemptionStatus === "exempt" ? fmtDate(v.expiry) : "—"}</td>
+                      <td className="px-4 py-3">{v.master || <span className="text-[#B7C2C8]">ØºÙØ± ÙØ­Ø¯Ø¯</span>}</td>
+                      <td className="px-4 py-3 mono text-xs">{v.exemptionStatus === "exempt" ? fmtDate(v.expiry) : "â"}</td>
                       <td className="px-4 py-3 mono text-xs font-bold" style={{ color: s.text }}>
-                        {v.status.days === null ? "—" : v.status.days < 0 ? `${v.status.days}−` : v.status.days}
+                        {v.status.days === null ? "â" : v.status.days < 0 ? `${v.status.days}â` : v.status.days}
                       </td>
                       <td className="px-4 py-3 text-left">
                         {isAdmin && (
-                          <button onClick={() => setEditingId(v.id)} className="text-xs font-bold text-[#0A3D3F] hover:underline">
-                            تعديل
+                          <button onClick={() => setEditingId(v.id)} className="text-xs font-bold text-white rounded-md px-4 py-2.5" style={{ backgroundColor: "#0A3D3F" }}>
+                            ØªØ¹Ø¯ÙÙ
                           </button>
                         )}
                       </td>
@@ -522,18 +593,18 @@ function FleetDashboard() {
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
               <ShipIcon className="w-4 h-4" style={{ color: "#2C5A70" }} />
-              <h2 className="amiri text-base font-bold tracking-wide" style={{ color: "#1E4356" }}>سجل عمليات تزويد سفن الوقود ({movements.length} عملية)</h2>
+              <h2 className="amiri text-base font-bold tracking-wide" style={{ color: "#1E4356" }}>Ø³Ø¬Ù Ø¹ÙÙÙØ§Øª ØªØ²ÙÙØ¯ Ø³ÙÙ Ø§ÙÙÙÙØ¯ ({movements.length} Ø¹ÙÙÙØ©)</h2>
             </div>
             {isAdmin && (
               <button onClick={() => setShowAddMovementModal(true)} className="text-xs font-bold px-3 py-2 rounded-md bg-[#B8935A] text-[#1E4356] flex items-center gap-1.5 hover:bg-[#C6A46C] transition">
-                <PlusIcon className="w-3.5 h-3.5" /> إضافة عملية تزويد
+                <PlusIcon className="w-3.5 h-3.5" /> Ø¥Ø¶Ø§ÙØ© Ø¹ÙÙÙØ© ØªØ²ÙÙØ¯
               </button>
             )}
           </div>
 
           {monthsAvailable.length === 0 ? (
             <div className="rounded-xl border px-4 py-6 text-sm text-center bg-white" style={{ borderColor: "#DCE3E7", color: "#55636B" }}>
-              لا توجد عمليات مسجلة بعد. {isAdmin ? "استخدم زر (إضافة عملية تزويد) لتسجيل أول عملية." : ""}
+              ÙØ§ ØªÙØ¬Ø¯ Ø¹ÙÙÙØ§Øª ÙØ³Ø¬ÙØ© Ø¨Ø¹Ø¯. {isAdmin ? "Ø§Ø³ØªØ®Ø¯Ù Ø²Ø± (Ø¥Ø¶Ø§ÙØ© Ø¹ÙÙÙØ© ØªØ²ÙÙØ¯) ÙØªØ³Ø¬ÙÙ Ø£ÙÙ Ø¹ÙÙÙØ©." : ""}
             </div>
           ) : (
             <div className="grid gap-2">
@@ -549,7 +620,7 @@ function FleetDashboard() {
                       <span className="flex items-center gap-2">
                         {monthLabel(k)}
                         <span className="mono text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: "#EEF2F4", color: "#55636B" }}>
-                          {movementsCountByMonth[k] || 0} عملية
+                          {movementsCountByMonth[k] || 0} Ø¹ÙÙÙØ©
                         </span>
                       </span>
                       {isOpen ? <ChevronUpIcon className="w-4 h-4" style={{ color: "#B8935A" }} /> : <ChevronDownIcon className="w-4 h-4" style={{ color: "#B8935A" }} />}
@@ -560,13 +631,13 @@ function FleetDashboard() {
                         <table className="w-full text-sm min-w-[860px]">
                           <thead>
                             <tr className="text-xs" style={{ backgroundColor: "#EEF2F4", color: "#55636B" }}>
-                              <th className="text-right px-4 py-3 font-bold">التاريخ</th>
-                              <th className="text-right px-4 py-3 font-bold">ناقلة التزويد</th>
-                              <th className="text-right px-4 py-3 font-bold">الرصيف</th>
-                              <th className="text-right px-4 py-3 font-bold">الوقت</th>
-                              <th className="text-right px-4 py-3 font-bold">المدة</th>
-                              <th className="text-right px-4 py-3 font-bold">الكمية / الوقود</th>
-                              <th className="text-right px-4 py-3 font-bold">السفينة المستفيدة</th>
+                              <th className="text-right px-4 py-3 font-bold">Ø§ÙØªØ§Ø±ÙØ®</th>
+                              <th className="text-right px-4 py-3 font-bold">ÙØ§ÙÙØ© Ø§ÙØªØ²ÙÙØ¯</th>
+                              <th className="text-right px-4 py-3 font-bold">Ø§ÙØ±ØµÙÙ</th>
+                              <th className="text-right px-4 py-3 font-bold">Ø§ÙÙÙØª</th>
+                              <th className="text-right px-4 py-3 font-bold">Ø§ÙÙØ¯Ø©</th>
+                              <th className="text-right px-4 py-3 font-bold">Ø§ÙÙÙÙØ© / Ø§ÙÙÙÙØ¯</th>
+                              <th className="text-right px-4 py-3 font-bold">Ø§ÙØ³ÙÙÙØ© Ø§ÙÙØ³ØªÙÙØ¯Ø©</th>
                               {isAdmin && <th className="px-4 py-3"></th>}
                             </tr>
                           </thead>
@@ -574,7 +645,7 @@ function FleetDashboard() {
                             {movementsForMonth.length === 0 ? (
                               <tr>
                                 <td colSpan={isAdmin ? 8 : 7} className="px-4 py-6 text-center text-sm" style={{ color: "#55636B" }}>
-                                  لا توجد عمليات مسجلة لهذا الشهر.
+                                  ÙØ§ ØªÙØ¬Ø¯ Ø¹ÙÙÙØ§Øª ÙØ³Ø¬ÙØ© ÙÙØ°Ø§ Ø§ÙØ´ÙØ±.
                                 </td>
                               </tr>
                             ) : (
@@ -584,25 +655,25 @@ function FleetDashboard() {
                                   <tr key={m.id} className="border-t" style={{ borderColor: "#EEF2F4" }}>
                                     <td className="px-4 py-3 mono text-xs">{m.date}</td>
                                     <td className="px-4 py-3">
-                                      <div className="font-bold">{vessel ? vessel.arName : "—"}</div>
+                                      <div className="font-bold">{vessel ? vessel.arName : "â"}</div>
                                       {vessel && <div className="text-xs mono" style={{ color: "#8B98A0" }}>{vessel.enName}</div>}
                                     </td>
                                     <td className="px-4 py-3 text-xs mono">
-                                      {m.berthFrom || "—"} ← {m.berthTo || "—"}
+                                      {m.berthFrom || "â"} â {m.berthTo || "â"}
                                     </td>
                                     <td className="px-4 py-3 text-xs mono">
-                                      {m.timeFrom || "—"} - {m.timeTo || "—"}
+                                      {m.timeFrom || "â"} - {m.timeTo || "â"}
                                     </td>
-                                    <td className="px-4 py-3 text-xs mono">{m.duration || "—"}</td>
+                                    <td className="px-4 py-3 text-xs mono">{m.duration || "â"}</td>
                                     <td className="px-4 py-3 text-xs">
-                                      <div className="font-bold" style={{ color: "#1E4356" }}>{m.quantity || "—"}</div>
-                                      <div style={{ color: "#8B98A0" }}>{m.fuelType || "—"}</div>
+                                      <div className="font-bold" style={{ color: "#1E4356" }}>{m.quantity || "â"}</div>
+                                      <div style={{ color: "#8B98A0" }}>{m.fuelType || "â"}</div>
                                     </td>
-                                    <td className="px-4 py-3 text-xs" style={{ color: "#55636B" }}>{m.servicedVessel || "—"}</td>
+                                    <td className="px-4 py-3 text-xs" style={{ color: "#55636B" }}>{m.servicedVessel || "â"}</td>
                                     {isAdmin && (
                                       <td className="px-4 py-3 text-left">
-                                        <button onClick={() => deleteMovement(m.id)} className="text-xs font-bold hover:underline" style={{ color: "#A8402F" }}>
-                                          حذف
+                                        <button onClick={() => deleteMovement(m.id)} className="text-xs font-bold text-white rounded-md px-4 py-2.5" style={{ backgroundColor: "#A8402F" }}>
+                                          Ø­Ø°Ù
                                         </button>
                                       </td>
                                     )}
@@ -624,16 +695,16 @@ function FleetDashboard() {
         <section className="mt-9 rise-in mb-6">
           <div className="flex items-center justify-center gap-3 mb-4">
             <ActivityIcon className="w-4 h-4" style={{ color: "#B8935A" }} />
-            <h2 className="amiri text-base font-bold tracking-wide" style={{ color: "#1E4356" }}>تحليل الأداء</h2>
+            <h2 className="amiri text-base font-bold tracking-wide" style={{ color: "#1E4356" }}>ØªØ­ÙÙÙ Ø§ÙØ£Ø¯Ø§Ø¡</h2>
             <ActivityIcon className="w-4 h-4" style={{ color: "#B8935A" }} />
           </div>
           <div className="rounded-2xl border p-4 bg-white" style={{ borderColor: "#E3D9BE" }}>
             <SimpleBarChart
               data={[
-                { name: "معفاة", value: stats.active, color: "#3F7A63" },
-                { name: "أوشكت", value: stats.expiring, color: "#B8935A" },
-                { name: "منتهية", value: stats.expired, color: "#A8402F" },
-                { name: "بلا بيانات", value: stats.noExemption + (stats.total - stats.active - stats.expiring - stats.expired - stats.noExemption), color: "#8C98A0" },
+                { name: "ÙØ¹ÙØ§Ø©", value: stats.active, color: "#3F7A63" },
+                { name: "Ø£ÙØ´ÙØª", value: stats.expiring, color: "#B8935A" },
+                { name: "ÙÙØªÙÙØ©", value: stats.expired, color: "#A8402F" },
+                { name: "Ø¨ÙØ§ Ø¨ÙØ§ÙØ§Øª", value: stats.noExemption + (stats.total - stats.active - stats.expiring - stats.expired - stats.noExemption), color: "#8C98A0" },
               ]}
             />
           </div>
@@ -644,14 +715,14 @@ function FleetDashboard() {
         <EditModal
           vessel={vessels.find(v => v.id === editingId)}
           onClose={() => setEditingId(null)}
-          onSave={(updates) => { updateVessel(editingId, updates); setEditingId(null); setToast({ type: "ok", msg: "تم تحديث بيانات السفينة." }); }}
+          onSave={(updates) => { updateVessel(editingId, updates); setEditingId(null); setToast({ type: "ok", msg: "ØªÙ ØªØ­Ø¯ÙØ« Ø¨ÙØ§ÙØ§Øª Ø§ÙØ³ÙÙÙØ©." }); }}
         />
       )}
 
       {showAddModal && (
         <AddModal
           onClose={() => setShowAddModal(false)}
-          onSave={(v) => { addVessel(v); setShowAddModal(false); setToast({ type: "ok", msg: "تمت إضافة السفينة إلى الأسطول." }); }}
+          onSave={(v) => { addVessel(v); setShowAddModal(false); setToast({ type: "ok", msg: "ØªÙØª Ø¥Ø¶Ø§ÙØ© Ø§ÙØ³ÙÙÙØ© Ø¥ÙÙ Ø§ÙØ£Ø³Ø·ÙÙ." }); }}
         />
       )}
 
@@ -663,7 +734,7 @@ function FleetDashboard() {
             addMovement(m);
             setExpandedMonth(monthKey(m.date));
             setShowAddMovementModal(false);
-            setToast({ type: "ok", msg: "تمت إضافة الحركة." });
+            setToast({ type: "ok", msg: "ØªÙØª Ø¥Ø¶Ø§ÙØ© Ø§ÙØ­Ø±ÙØ©." });
           }}
         />
       )}
@@ -684,16 +755,22 @@ function FleetDashboard() {
 
 // ---------- Stat Card ----------
 
-function StatCard({ label, value, color, bg, IconComp }) {
+function StatCard({ label, value, color, bg, IconComp, onClick, active }) {
+  const clickable = !!onClick;
   return (
-    <div className="rounded-2xl border border-[#E3D9BE] bg-[#FFFFFF] p-4 flex items-center gap-3 stat-card shadow-sm">
+    <div
+      onClick={onClick}
+      className={`rounded-2xl border bg-[#FFFFFF] p-4 flex items-center gap-3 stat-card shadow-sm ${clickable ? "cursor-pointer" : ""}`}
+      style={{ borderColor: active ? color : "#E3D9BE", boxShadow: active ? `0 0 0 2px ${color}33` : undefined }}
+    >
       <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: bg }}>
         <IconComp className="w-5 h-5" style={{ color }} />
       </div>
-      <div>
+      <div className="flex-1 min-w-0">
         <div className="mono text-2xl font-bold leading-none" style={{ color: "#1E4356" }}>{value}</div>
         <div className="text-xs text-[#55636B] mt-1">{label}</div>
       </div>
+      {clickable && <ChevronDownIcon className="w-3.5 h-3.5 shrink-0" style={{ color: "#B7C2C8", transform: active ? "rotate(180deg)" : "none" }} />}
     </div>
   );
 }
@@ -708,7 +785,7 @@ function MiniStat({ label, value, sub }) {
   );
 }
 
-// ---------- Simple bar chart ----------
+// ---------- Simple bar chart (replaces recharts) ----------
 
 function SimpleBarChart({ data }) {
   const max = Math.max(1, ...data.map(d => d.value));
@@ -733,17 +810,17 @@ function SimpleBarChart({ data }) {
 function CaptainLogPanel({ log }) {
   return (
     <div className="mb-4 rounded-xl border border-[#DCE3E7] bg-[#FFFFFF] overflow-hidden">
-      <div className="px-4 py-2.5 bg-[#EEF2F4] text-xs font-bold text-[#55636B]">سجل تناوب الكباتن التاريخي</div>
+      <div className="px-4 py-2.5 bg-[#EEF2F4] text-xs font-bold text-[#55636B]">Ø³Ø¬Ù ØªÙØ§ÙØ¨ Ø§ÙÙØ¨Ø§ØªÙ Ø§ÙØªØ§Ø±ÙØ®Ù</div>
       {log.length === 0 ? (
-        <div className="px-4 py-4 text-sm text-[#8B98A0]">لا يوجد سجل تناوب مسجل بعد.</div>
+        <div className="px-4 py-4 text-sm text-[#8B98A0]">ÙØ§ ÙÙØ¬Ø¯ Ø³Ø¬Ù ØªÙØ§ÙØ¨ ÙØ³Ø¬Ù Ø¨Ø¹Ø¯.</div>
       ) : (
         <table className="w-full text-sm">
           <thead>
             <tr className="text-xs text-[#8B98A0]">
-              <th className="text-right px-4 py-2 font-bold">السفينة</th>
-              <th className="text-right px-4 py-2 font-bold">الكابتن</th>
-              <th className="text-right px-4 py-2 font-bold">بداية النوبة</th>
-              <th className="text-right px-4 py-2 font-bold">نهاية النوبة</th>
+              <th className="text-right px-4 py-2 font-bold">Ø§ÙØ³ÙÙÙØ©</th>
+              <th className="text-right px-4 py-2 font-bold">Ø§ÙÙØ§Ø¨ØªÙ</th>
+              <th className="text-right px-4 py-2 font-bold">Ø¨Ø¯Ø§ÙØ© Ø§ÙÙÙØ¨Ø©</th>
+              <th className="text-right px-4 py-2 font-bold">ÙÙØ§ÙØ© Ø§ÙÙÙØ¨Ø©</th>
             </tr>
           </thead>
           <tbody>
@@ -751,7 +828,7 @@ function CaptainLogPanel({ log }) {
               <tr key={l.id} className="border-t border-[#EEF2F4]">
                 <td className="px-4 py-2 font-bold">{l.vesselName}</td>
                 <td className="px-4 py-2">{l.captain}</td>
-                <td className="px-4 py-2 mono text-xs">{l.start || "—"}</td>
+                <td className="px-4 py-2 mono text-xs">{l.start || "â"}</td>
                 <td className="px-4 py-2 mono text-xs">{l.end}</td>
               </tr>
             ))}
@@ -778,46 +855,46 @@ function EditModal({ vessel, onClose, onSave }) {
   const set = (k, val) => setForm(f => ({ ...f, [k]: val }));
 
   return (
-    <Modal onClose={onClose} title={`تعديل بيانات: ${vessel.arName}`}>
+    <Modal onClose={onClose} title={`ØªØ¹Ø¯ÙÙ Ø¨ÙØ§ÙØ§Øª: ${vessel.arName}`}>
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="الاسم بالعربية">
+          <Field label="Ø§ÙØ§Ø³Ù Ø¨Ø§ÙØ¹Ø±Ø¨ÙØ©">
             <input value={form.arName} onChange={e => set("arName", e.target.value)} className="input" />
           </Field>
-          <Field label="الاسم بالإنجليزية">
+          <Field label="Ø§ÙØ§Ø³Ù Ø¨Ø§ÙØ¥ÙØ¬ÙÙØ²ÙØ©">
             <input value={form.enName} onChange={e => set("enName", e.target.value)} className="input mono" />
           </Field>
         </div>
-        <Field label="رقم IMO">
-          <input value={form.imo} onChange={e => set("imo", e.target.value)} className="input mono" placeholder="مثال: 9417945" />
+        <Field label="Ø±ÙÙ IMO">
+          <input value={form.imo} onChange={e => set("imo", e.target.value)} className="input mono" placeholder="ÙØ«Ø§Ù: 9417945" />
         </Field>
-        <Field label="حالة الإعفاء">
+        <Field label="Ø­Ø§ÙØ© Ø§ÙØ¥Ø¹ÙØ§Ø¡">
           <div className="flex gap-2">
-            <button onClick={() => set("exemptionStatus", "exempt")} className={`toggle ${form.exemptionStatus === "exempt" ? "toggle-on-green" : ""}`}>مؤهلة للإعفاء</button>
-            <button onClick={() => set("exemptionStatus", "not_exempt")} className={`toggle ${form.exemptionStatus === "not_exempt" ? "toggle-on-gray" : ""}`}>غير معفاة - تتطلب إرشاد</button>
+            <button onClick={() => set("exemptionStatus", "exempt")} className={`toggle ${form.exemptionStatus === "exempt" ? "toggle-on-green" : ""}`}>ÙØ¤ÙÙØ© ÙÙØ¥Ø¹ÙØ§Ø¡</button>
+            <button onClick={() => set("exemptionStatus", "not_exempt")} className={`toggle ${form.exemptionStatus === "not_exempt" ? "toggle-on-gray" : ""}`}>ØºÙØ± ÙØ¹ÙØ§Ø© - ØªØªØ·ÙØ¨ Ø¥Ø±Ø´Ø§Ø¯</button>
           </div>
         </Field>
         {form.exemptionStatus === "exempt" && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label="تاريخ بدء الإعفاء">
+            <Field label="ØªØ§Ø±ÙØ® Ø¨Ø¯Ø¡ Ø§ÙØ¥Ø¹ÙØ§Ø¡">
               <input type="date" value={form.start} onChange={e => set("start", e.target.value)} className="input mono" />
             </Field>
-            <Field label="تاريخ انتهاء الإعفاء">
+            <Field label="ØªØ§Ø±ÙØ® Ø§ÙØªÙØ§Ø¡ Ø§ÙØ¥Ø¹ÙØ§Ø¡">
               <input type="date" value={form.expiry} onChange={e => set("expiry", e.target.value)} className="input mono" />
             </Field>
           </div>
         )}
-        <Field label="اسم الكابتن الحالي">
-          <input value={form.master} onChange={e => set("master", e.target.value)} className="input" placeholder="اسم الكابتن" />
+        <Field label="Ø§Ø³Ù Ø§ÙÙØ§Ø¨ØªÙ Ø§ÙØ­Ø§ÙÙ">
+          <input value={form.master} onChange={e => set("master", e.target.value)} className="input" placeholder="Ø§Ø³Ù Ø§ÙÙØ§Ø¨ØªÙ" />
         </Field>
         {vessel.master && form.master !== vessel.master && (
           <p className="text-xs text-[#6B4E24] bg-[#F5E9D2] rounded-md px-3 py-2">
-            سيتم أرشفة الكابتن السابق «{vessel.master}» تلقائياً في سجل الكباتن عند الحفظ.
+            Ø³ÙØªÙ Ø£Ø±Ø´ÙØ© Ø§ÙÙØ§Ø¨ØªÙ Ø§ÙØ³Ø§Ø¨Ù Â«{vessel.master}Â» ØªÙÙØ§Ø¦ÙØ§Ù ÙÙ Ø³Ø¬Ù Ø§ÙÙØ¨Ø§ØªÙ Ø¹ÙØ¯ Ø§ÙØ­ÙØ¸.
           </p>
         )}
         <div className="flex gap-2 justify-end pt-2">
-          <button onClick={onClose} className="btn-secondary">إلغاء</button>
-          <button onClick={() => onSave(form)} className="btn-primary">حفظ التعديلات</button>
+          <button onClick={onClose} className="btn-secondary">Ø¥ÙØºØ§Ø¡</button>
+          <button onClick={() => onSave(form)} className="btn-primary">Ø­ÙØ¸ Ø§ÙØªØ¹Ø¯ÙÙØ§Øª</button>
         </div>
       </div>
     </Modal>
@@ -832,43 +909,43 @@ function AddModal({ onClose, onSave }) {
   const canSave = form.arName.trim() && form.enName.trim();
 
   return (
-    <Modal onClose={onClose} title="إضافة سفينة جديدة">
+    <Modal onClose={onClose} title="Ø¥Ø¶Ø§ÙØ© Ø³ÙÙÙØ© Ø¬Ø¯ÙØ¯Ø©">
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-3">
-          <Field label="الاسم بالعربية">
-            <input value={form.arName} onChange={e => set("arName", e.target.value)} className="input" placeholder="اسم الناقلة" />
+          <Field label="Ø§ÙØ§Ø³Ù Ø¨Ø§ÙØ¹Ø±Ø¨ÙØ©">
+            <input value={form.arName} onChange={e => set("arName", e.target.value)} className="input" placeholder="Ø§Ø³Ù Ø§ÙÙØ§ÙÙØ©" />
           </Field>
-          <Field label="الاسم بالإنجليزية">
+          <Field label="Ø§ÙØ§Ø³Ù Ø¨Ø§ÙØ¥ÙØ¬ÙÙØ²ÙØ©">
             <input value={form.enName} onChange={e => set("enName", e.target.value)} className="input mono" placeholder="VESSEL NAME" />
           </Field>
         </div>
-        <Field label="رقم IMO">
-          <input value={form.imo} onChange={e => set("imo", e.target.value)} className="input mono" placeholder="مثال: 9417945" />
+        <Field label="Ø±ÙÙ IMO">
+          <input value={form.imo} onChange={e => set("imo", e.target.value)} className="input mono" placeholder="ÙØ«Ø§Ù: 9417945" />
         </Field>
-        <Field label="حالة الإعفاء">
+        <Field label="Ø­Ø§ÙØ© Ø§ÙØ¥Ø¹ÙØ§Ø¡">
           <div className="flex gap-2">
-            <button onClick={() => set("exemptionStatus", "exempt")} className={`toggle ${form.exemptionStatus === "exempt" ? "toggle-on-green" : ""}`}>مؤهلة للإعفاء</button>
-            <button onClick={() => set("exemptionStatus", "not_exempt")} className={`toggle ${form.exemptionStatus === "not_exempt" ? "toggle-on-gray" : ""}`}>غير معفاة - تتطلب إرشاد</button>
+            <button onClick={() => set("exemptionStatus", "exempt")} className={`toggle ${form.exemptionStatus === "exempt" ? "toggle-on-green" : ""}`}>ÙØ¤ÙÙØ© ÙÙØ¥Ø¹ÙØ§Ø¡</button>
+            <button onClick={() => set("exemptionStatus", "not_exempt")} className={`toggle ${form.exemptionStatus === "not_exempt" ? "toggle-on-gray" : ""}`}>ØºÙØ± ÙØ¹ÙØ§Ø© - ØªØªØ·ÙØ¨ Ø¥Ø±Ø´Ø§Ø¯</button>
           </div>
         </Field>
         {form.exemptionStatus === "exempt" && (
           <div className="grid grid-cols-2 gap-3">
-            <Field label="تاريخ بدء الإعفاء">
+            <Field label="ØªØ§Ø±ÙØ® Ø¨Ø¯Ø¡ Ø§ÙØ¥Ø¹ÙØ§Ø¡">
               <input type="date" value={form.start} onChange={e => set("start", e.target.value)} className="input mono" />
             </Field>
-            <Field label="تاريخ انتهاء الإعفاء">
+            <Field label="ØªØ§Ø±ÙØ® Ø§ÙØªÙØ§Ø¡ Ø§ÙØ¥Ø¹ÙØ§Ø¡">
               <input type="date" value={form.expiry} onChange={e => set("expiry", e.target.value)} className="input mono" />
             </Field>
           </div>
         )}
-        <Field label="اسم الكابتن الحالي">
-          <input value={form.master} onChange={e => set("master", e.target.value)} className="input" placeholder="اسم الكابتن (اختياري)" />
+        <Field label="Ø§Ø³Ù Ø§ÙÙØ§Ø¨ØªÙ Ø§ÙØ­Ø§ÙÙ">
+          <input value={form.master} onChange={e => set("master", e.target.value)} className="input" placeholder="Ø§Ø³Ù Ø§ÙÙØ§Ø¨ØªÙ (Ø§Ø®ØªÙØ§Ø±Ù)" />
         </Field>
         <div className="flex gap-2 justify-end pt-2">
-          <button onClick={onClose} className="btn-secondary">إلغاء</button>
+          <button onClick={onClose} className="btn-secondary">Ø¥ÙØºØ§Ø¡</button>
           <button disabled={!canSave} onClick={() => onSave({ id: `v-${Date.now()}`, ...form, masterSince: form.master ? new Date().toISOString().slice(0, 10) : "" })}
             className="btn-primary" style={{ opacity: canSave ? 1 : 0.5, cursor: canSave ? "pointer" : "not-allowed" }}>
-            إضافة السفينة
+            Ø¥Ø¶Ø§ÙØ© Ø§ÙØ³ÙÙÙØ©
           </button>
         </div>
       </div>
@@ -888,53 +965,53 @@ function AddMovementModal({ vessels, onClose, onSave }) {
   const canSave = form.vesselId && form.date;
 
   return (
-    <Modal onClose={onClose} title="إضافة عملية تزويد بالوقود">
+    <Modal onClose={onClose} title="Ø¥Ø¶Ø§ÙØ© Ø¹ÙÙÙØ© ØªØ²ÙÙØ¯ Ø¨Ø§ÙÙÙÙØ¯">
       <div className="grid gap-4">
-        <Field label="ناقلة التزويد">
+        <Field label="ÙØ§ÙÙØ© Ø§ÙØªØ²ÙÙØ¯">
           <select value={form.vesselId} onChange={e => set("vesselId", e.target.value)} className="input">
             {vessels.map(v => (
               <option key={v.id} value={v.id}>{v.arName} / {v.enName}</option>
             ))}
           </select>
         </Field>
-        <Field label="التاريخ">
+        <Field label="Ø§ÙØªØ§Ø±ÙØ®">
           <input type="date" value={form.date} onChange={e => set("date", e.target.value)} className="input mono" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="من رصيف">
-            <input value={form.berthFrom} onChange={e => set("berthFrom", e.target.value)} className="input" placeholder="مثال: B" />
+          <Field label="ÙÙ Ø±ØµÙÙ">
+            <input value={form.berthFrom} onChange={e => set("berthFrom", e.target.value)} className="input" placeholder="ÙØ«Ø§Ù: B" />
           </Field>
-          <Field label="إلى رصيف">
-            <input value={form.berthTo} onChange={e => set("berthTo", e.target.value)} className="input" placeholder="مثال: E3" />
+          <Field label="Ø¥ÙÙ Ø±ØµÙÙ">
+            <input value={form.berthTo} onChange={e => set("berthTo", e.target.value)} className="input" placeholder="ÙØ«Ø§Ù: E3" />
           </Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="وقت البداية">
-            <input value={form.timeFrom} onChange={e => set("timeFrom", e.target.value)} className="input mono" placeholder="مثال: 09:10" />
+          <Field label="ÙÙØª Ø§ÙØ¨Ø¯Ø§ÙØ©">
+            <input value={form.timeFrom} onChange={e => set("timeFrom", e.target.value)} className="input mono" placeholder="ÙØ«Ø§Ù: 09:10" />
           </Field>
-          <Field label="وقت النهاية">
-            <input value={form.timeTo} onChange={e => set("timeTo", e.target.value)} className="input mono" placeholder="مثال: 15:35" />
+          <Field label="ÙÙØª Ø§ÙÙÙØ§ÙØ©">
+            <input value={form.timeTo} onChange={e => set("timeTo", e.target.value)} className="input mono" placeholder="ÙØ«Ø§Ù: 15:35" />
           </Field>
         </div>
-        <Field label="المدة (اختياري)">
-          <input value={form.duration} onChange={e => set("duration", e.target.value)} className="input mono" placeholder="مثال: 6:25" />
+        <Field label="Ø§ÙÙØ¯Ø© (Ø§Ø®ØªÙØ§Ø±Ù)">
+          <input value={form.duration} onChange={e => set("duration", e.target.value)} className="input mono" placeholder="ÙØ«Ø§Ù: 6:25" />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="الكمية">
-            <input value={form.quantity} onChange={e => set("quantity", e.target.value)} className="input" placeholder="مثال: 200" />
+          <Field label="Ø§ÙÙÙÙØ©">
+            <input value={form.quantity} onChange={e => set("quantity", e.target.value)} className="input" placeholder="ÙØ«Ø§Ù: 200" />
           </Field>
-          <Field label="نوع الوقود">
-            <input value={form.fuelType} onChange={e => set("fuelType", e.target.value)} className="input" placeholder="مثال: FUEL / ديزل" />
+          <Field label="ÙÙØ¹ Ø§ÙÙÙÙØ¯">
+            <input value={form.fuelType} onChange={e => set("fuelType", e.target.value)} className="input" placeholder="ÙØ«Ø§Ù: FUEL / Ø¯ÙØ²Ù" />
           </Field>
         </div>
-        <Field label="السفينة المستفيدة">
-          <input value={form.servicedVessel} onChange={e => set("servicedVessel", e.target.value)} className="input" placeholder="اسم السفينة التي تم تزويدها" />
+        <Field label="Ø§ÙØ³ÙÙÙØ© Ø§ÙÙØ³ØªÙÙØ¯Ø©">
+          <input value={form.servicedVessel} onChange={e => set("servicedVessel", e.target.value)} className="input" placeholder="Ø§Ø³Ù Ø§ÙØ³ÙÙÙØ© Ø§ÙØªÙ ØªÙ ØªØ²ÙÙØ¯ÙØ§" />
         </Field>
         <div className="flex gap-2 justify-end pt-2">
-          <button onClick={onClose} className="btn-secondary">إلغاء</button>
+          <button onClick={onClose} className="btn-secondary">Ø¥ÙØºØ§Ø¡</button>
           <button disabled={!canSave} onClick={() => onSave({ id: `m-${Date.now()}`, ...form })}
             className="btn-primary" style={{ opacity: canSave ? 1 : 0.5, cursor: canSave ? "pointer" : "not-allowed" }}>
-            إضافة العملية
+            Ø¥Ø¶Ø§ÙØ© Ø§ÙØ¹ÙÙÙØ©
           </button>
         </div>
       </div>
@@ -947,9 +1024,9 @@ function AddMovementModal({ vessels, onClose, onSave }) {
 function LoginModal({ onClose, onSubmit }) {
   const [pin, setPin] = useState("");
   return (
-    <Modal onClose={onClose} title="دخول المشرف">
+    <Modal onClose={onClose} title="Ø¯Ø®ÙÙ Ø§ÙÙØ´Ø±Ù">
       <div className="grid gap-4">
-        <Field label="رمز الدخول (PIN)">
+        <Field label="Ø±ÙØ² Ø§ÙØ¯Ø®ÙÙ (PIN)">
           <input
             type="password"
             value={pin}
@@ -957,12 +1034,12 @@ function LoginModal({ onClose, onSubmit }) {
             onChange={e => setPin(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") onSubmit(pin); }}
             className="input mono"
-            placeholder="••••"
+            placeholder="â¢â¢â¢â¢"
           />
         </Field>
         <div className="flex gap-2 justify-end pt-2">
-          <button onClick={onClose} className="btn-secondary">إلغاء</button>
-          <button onClick={() => onSubmit(pin)} className="btn-primary">دخول</button>
+          <button onClick={onClose} className="btn-secondary">Ø¥ÙØºØ§Ø¡</button>
+          <button onClick={() => onSubmit(pin)} className="btn-primary">Ø¯Ø®ÙÙ</button>
         </div>
       </div>
     </Modal>
