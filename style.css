@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+body {
+  font-family: 'Tajawal', 'Segoe UI', sans-serif;
+  margin: 0;
+}
+
+.mono { font-family: 'JetBrains Mono', monospace; }
+.amiri { font-family: 'Amiri', serif; }
+
+.official-bg {
+  background-color: #F7F7F5;
+  background-image: radial-gradient(circle at 1px 1px, rgba(44,90,112,0.06) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+.watermark {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 520px;
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.ribbon-banner {
+  position: relative;
+  clip-path: polygon(2.2% 0%, 100% 0%, 100% 100%, 2.2% 100%, 0% 50%);
+  background: linear-gradient(90deg, #FBF4E3, #F5EAD0);
+  border: 1px solid #E3D0A0;
+  padding: 10px 18px 10px 22px;
+}
+
+.stat-card { transition: transform .18s ease, box-shadow .18s ease; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -8px rgba(44,90,112,0.25); }
+
+@keyframes riseIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.rise-in { animation: riseIn .4s ease both; }
+
+@keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+@keyframes pulseCritical { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,41,29,0.35); } 50% { box-shadow: 0 0 0 8px rgba(214,41,29,0); } }
+.pulse-critical { animation: pulseCritical 2s ease-in-out infinite; }
+
+/* Form controls used inside modals */
+.input {
+  width: 100%;
+  border: 1px solid #DCE3E7;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  background: #FFFFFF;
+}
+.input:focus { border-color: #B8935A; box-shadow: 0 0 0 3px rgba(184,147,90,0.18); }
+
+.toggle {
+  flex: 1;
+  border: 1px solid #DCE3E7;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #FFFFFF;
+  color: #55636B;
+  cursor: pointer;
+  transition: all .15s;
+}
+.toggle-on-green { background: #E3EEE7; border-color: #3F7A63; color: #1F4A3A; }
+.toggle-on-gray { background: #E7EAEC; border-color: #8C98A0; color: #4A5760; }
+
+.btn-primary {
+  background: #0A3D3F;
+  color: #F1E9D5;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover { background: #0D4A4C; }
+.btn-primary:disabled { cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  color: #55636B;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  border: 1px solid #DCE3E7;
+  cursor: pointer;
+}
+.btn-secondary:hover { background: #F0E9D6; }
+
+/* Simple CSS bar chart (replaces the recharts dependency) */
+.bar-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 200px;
+  padding: 12px 8px 0;
+}
+.bar-chart-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.bar-chart-bar {
+  width: 100%;
+  max-width: 56px;
+  border-radius: 6px 6px 0 0;
+  transition: height .3s ease;
+}
+.bar-chart-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1E4356;
+}
+.bar-chart-label {
+  font-size: 11px;
+  color: #55636B;
+  text-align: center;
+}
