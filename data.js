@@ -8,7 +8,7 @@ const SEED_VESSELS = [
   { id: "5", arName: "هالكى", enName: "HALKI", imo: "9417957", exemptionStatus: "exempt", start: "", expiry: "2027-04-27", master: "جيفري جوزمان أنشاس" },
   { id: "6", arName: "باتموس", enName: "PATMOS", imo: "", exemptionStatus: "unset", start: "", expiry: "", master: "" },
   { id: "7", arName: "معراج", enName: "MIRAJ", imo: "9394741", exemptionStatus: "exempt", start: "", expiry: "2027-06-21", master: "منتصر فتحي عبد اللطيف" },
-  { id: "8", arName: "الزرندي", enName: "AL ZARANDI", imo: "9325958", exemptionStatus: "unset", start: "", expiry: "", master: "" },
+  { id: "8", arName: "الزرندي", enName: "AL ZARANDI", imo: "9325958", exemptionStatus: "exempt", start: "2026-06-21", expiry: "2026-11-16", master: "ياسر أحمد السيد خليفة" },
   { id: "9", arName: "السمو السعودي", enName: "AL SUMUO AL SAUDI", imo: "9185578", exemptionStatus: "unset", start: "", expiry: "", master: "" },
   { id: "10", arName: "البرق السعودي", enName: "AL BARQ AL SAUDI", imo: "9215024", exemptionStatus: "exempt", start: "", expiry: "2027-05-04", master: "كولندرام سكانتهافينو" },
   { id: "11", arName: "الامل السعودي", enName: "AL AMAL AL SAUDI", imo: "", exemptionStatus: "unset", start: "", expiry: "", master: "" },

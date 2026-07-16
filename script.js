@@ -284,11 +284,6 @@ function FleetDashboard() {
     expired: enriched.filter(v => v.status.code === "expired").map(v => v.arName),
   }), [enriched]);
 
-  const todaysOperationsCount = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return movements.filter(m => m.date === today).length;
-  }, [movements]);
-
   const monthsAvailable = useMemo(() => {
     const keys = new Set(movements.map(m => monthKey(m.date)));
     return [...keys].sort().reverse();
@@ -407,12 +402,11 @@ function FleetDashboard() {
       </header>
 
       <div className="max-w-6xl mx-auto px-5 relative" style={{ zIndex: 1 }}>
-        <section className="mt-7 grid grid-cols-2 sm:grid-cols-5 gap-3 rise-in">
+        <section className="mt-7 grid grid-cols-2 sm:grid-cols-4 gap-3 rise-in">
           <StatCard label="إجمالي الأسطول" value={stats.total} color="#0A3D3F" bg="#E4EEEC" IconComp={ShipIcon}
             onClick={() => setExpandedStat(expandedStat === "total" ? null : "total")} active={expandedStat === "total"} />
           <StatCard label="معفاة وسارية" value={stats.active} color="#1F4A3A" bg="#E3EEE7" IconComp={AnchorIcon}
             onClick={() => setExpandedStat(expandedStat === "active" ? null : "active")} active={expandedStat === "active"} />
-          <StatCard label="عمليات اليوم" value={todaysOperationsCount} color="#1E4356" bg="#E4EEF4" IconComp={RadioIcon} />
           <StatCard label="أوشكت على الانتهاء" value={stats.expiring} color="#6B4E24" bg="#F5E9D2" IconComp={AlertTriangleIcon}
             onClick={() => setExpandedStat(expandedStat === "expiring" ? null : "expiring")} active={expandedStat === "expiring"} />
           <StatCard label="منتهية" value={stats.expired} color="#6B241A" bg="#F1DCD5" IconComp={AlertTriangleIcon}

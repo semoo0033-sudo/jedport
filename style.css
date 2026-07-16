@@ -60,6 +60,9 @@ body {
 
 @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
+@keyframes pulseCritical { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,41,29,0.35); } 50% { box-shadow: 0 0 0 8px rgba(214,41,29,0); } }
+.pulse-critical { animation: pulseCritical 2s ease-in-out infinite; }
+
 /* Form controls used inside modals */
 .input {
   width: 100%;
