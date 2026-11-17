@@ -6,16 +6,16 @@ const SEED_VESSELS = [
   { id: "3", arName: "باكسي", enName: "PAXOI", imo: "", exemptionStatus: "not_exempt", start: "", expiry: "", master: "" },
   { id: "4", arName: "تايلوس", enName: "TILOS", imo: "9417945", exemptionStatus: "exempt", start: "2026-02-05", expiry: "2027-01-22", master: "فريدريك تان (ع - 15)" },
   { id: "5", arName: "هالكى", enName: "HALKI", imo: "9417957", exemptionStatus: "exempt", start: "", expiry: "2027-04-27", master: "جيفري جوزمان أنشاس" },
-  { id: "6", arName: "باتموس", enName: "PATMOS", imo: "", exemptionStatus: "exempt", start: "2026-09-14", expiry: "2027-08-26", master: "مورو جوزيف ياب بانديكو (MAURO JOSEPH YAP BANDICO)" },
-  { id: "7", arName: "معراج", enName: "MIRAJ", imo: "9394741", exemptionStatus: "exempt", start: "", expiry: "2027-06-21", master: "منتصر فتحي عبد اللطيف" },
+  { id: "6", arName: "باتموس", enName: "PATMOS", imo: "", exemptionStatus: "exempt", start: "", expiry: "2026-10-15", master: "نويل كليتي (ع - 22)" },
+  { id: "7", arName: "معراج", enName: "MIRAJ", imo: "9394741", exemptionStatus: "exempt", start: "2026-11-06", expiry: "2027-02-05", master: "محمد عاطف كحيل (MOHAMED ATEF KOHEIL)" },
   { id: "8", arName: "الزرندي", enName: "AL ZARANDI", imo: "9325958", exemptionStatus: "exempt", start: "2026-06-21", expiry: "2026-11-16", master: "ياسر أحمد السيد خليفة" },
-  { id: "9", arName: "السمو السعودي", enName: "AL SUMUO AL SAUDI", imo: "9185578", exemptionStatus: "exempt", start: "2026-08-30", expiry: "2027-07-15", master: "كرشنا كوماران جياسوشي (KRISHNAKUMARAN JEYASOTHY)" },
+  { id: "9", arName: "السمو السعودي", enName: "AL SUMUO AL SAUDI", imo: "9185578", exemptionStatus: "exempt", start: "", expiry: "2026-12-10", master: "راتنا ثيليك ميلا (ع - 11)" },
   { id: "10", arName: "البرق السعودي", enName: "AL BARQ AL SAUDI", imo: "9215024", exemptionStatus: "exempt", start: "", expiry: "2027-05-04", master: "كولندرام سكانتهافينو" },
   { id: "11", arName: "الامل السعودي", enName: "AL AMAL AL SAUDI", imo: "", exemptionStatus: "not_exempt", start: "", expiry: "", master: "" },
-  { id: "12", arName: "المجد السعودي", enName: "AL MAJD AL SAUDI", imo: "9136797", exemptionStatus: "exempt", start: "2026-09-14", expiry: "2026-12-18", master: "نيشانثان كوروناثان (NISHANTHAN KURUNATHAN)" },
+  { id: "12", arName: "المجد السعودي", enName: "AL MAJD AL SAUDI", imo: "9136797", exemptionStatus: "exempt", start: "", expiry: "2026-09-18", master: "نيشانثان كوروناثان" },
   { id: "13", arName: "اسبارتكوس", enName: "SPARTAKOS", imo: "9033919", exemptionStatus: "not_exempt", start: "", expiry: "", master: "" },
   { id: "14", arName: "مروة - 9", enName: "MARWAH-9", imo: "9393292", exemptionStatus: "not_exempt", start: "", expiry: "", master: "محمد سايلن (ع - 19)" },
-  { id: "15", arName: "الصفا", enName: "AL SAFA", imo: "9501643", exemptionStatus: "exempt", start: "", expiry: "2027-06-03", master: "صلاح الدين حمزة محمد الباقر" },
+  { id: "15", arName: "الصفا", enName: "AL SAFA", imo: "9501643", exemptionStatus: "exempt", start: "2026-11-06", expiry: "2027-02-05", master: "منتصر فتحي عبد اللطيف (MONTASER FATHY ABDELLATIF)" },
 ];
 
 const SEED_MOVEMENTS = [
